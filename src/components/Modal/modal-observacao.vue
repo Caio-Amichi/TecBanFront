@@ -3,29 +3,96 @@
     <b-modal
       id="modal-center"
       hide-header-close="true"
-      cancel-title="Fechar"
-      ok-title="Salvar"
-      size="lg"
+      size="xl"
       centered
       title="Observações"
+      ok-title="Salvar"
+      cancel-title="Cancelar"
+      @ok="criarObs"
     >
-      <table-contract class="scroll-table" />
+      <el-table :data="list" border highlight-current-row style="width: 100%">
+        <el-table-column align="center" label="ID" hidden="true">
+          <template slot-scope="{ row }">
+            <span>{{ row.id }}</span>
+          </template>
+        </el-table-column>
+
+        <el-table-column
+          align="center"
+          label="Data Observação"
+          style="background-color: red"
+        >
+          <template slot-scope="{ row }">
+            <span>{{ row.dtobservacao.slice(0, 10) }}</span>
+          </template>
+        </el-table-column>
+
+        <el-table-column
+          align="center"
+          label="Descrição Observação"
+          style="background-color: red"
+        >
+          <template slot-scope="{ row }">
+            <span class="span-dsobservacao">{{ row.dsobservacao }}</span>
+          </template>
+        </el-table-column>
+
+        <el-table-column
+          align="center"
+          label="Login Observação"
+          style="background-color: red"
+        >
+          <template slot-scope="{ row }">
+            <span>{{ row.login }}</span>
+          </template>
+        </el-table-column>
+      </el-table>
+      <el-col class="form-col" style="margin-top: 10px">
+        <div class="input-form p-float-label">
+          <b-form-textarea
+            placeholder="Adicionar Nova Observação"
+            v-model="input_observacao"
+          ></b-form-textarea>
+        </div>
+      </el-col>
     </b-modal>
   </div>
 </template>
 
 <script>
 import TableContract from "../../views/dashboard/admin/components/TableContract";
+import * as axios from "axios";
+import * as moment from "moment";
 
 export default {
   components: {
     TableContract,
   },
+  props: {
+    list: {
+      type: Array,
+      default: function () {
+        return [];
+      },
+    },
+    idcontrato: {
+      type: Number,
+      default: function () {
+        return null;
+      },
+    },
+  },
   data() {
     return {
       boxOne: "",
       boxTwo: "",
+      input_observacao: "",
     };
+  },
+  watch: {
+    list: function (val) {
+      console.log("idcontrato", val);
+    },
   },
   methods: {
     showMsgBoxOne() {
@@ -60,15 +127,40 @@ export default {
           // An error occurred
         });
     },
+
+    async criarObs() {
+      await axios
+        .post("http://localhost:5478/contratoobs", {
+          login: "Default",
+          id: Math.floor(Math.random() * 1001),
+          dsobservacao: this.input_observacao,
+          dtobservacao: moment(new Date()).format("YYYY-MM-DDTHH:mm:ss.SSSZ"),
+          idcontrato: this.$props.idcontrato,
+        })
+        .then((res) => {
+          console.log(res.data);
+          this.$props.list = [res.data];
+        })
+        .catch((err) => {
+          // Handle error
+          console.log(err);
+        });
+    },
   },
 };
 </script>
 
 <style lang="scss" scoped>
+.span-dsobservacao {
+  text-overflow: ellipsis;
+  word-break: normal;
+}
+
 .scroll-table {
   overflow-y: scroll;
   height: 40vh;
 }
+
 #observacao {
   height: 100px;
 }

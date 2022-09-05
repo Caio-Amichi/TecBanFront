@@ -2,30 +2,39 @@
   <div class="dashboard-editor-container">
     <div class="card">
       <div class="card-header">
-        <div v-b-toggle.collapse-3 class="card-header-title">
+        <div class="card-header-title" v-b-toggle.collapse-3>
           <div>Consulta de Contratos</div>
           <span><i class="el-icon-s-operation" /></span>
         </div>
       </div>
       <b-collapse id="collapse-3" visible>
-        <panel-group />
+        <panel-group :onSubmit="handleSubmit" />
       </b-collapse>
     </div>
     <div class="card">
       <div class="card-header">
-        <div v-b-toggle.collapse-4 class="card-header-title">
+        <div
+          class="card-header-title"
+          @click="collapseOneStatus = !collapseOneStatus && !collapseOneLock"
+        >
           <div>Lista de Contratos (RIs)</div>
           <span class="when-opened"><i class="el-icon-caret-top" /></span>
           <span class="when-closed"><i class="el-icon-caret-bottom" /></span>
         </div>
       </div>
-      <b-collapse id="collapse-4" visible>
-        <table-contract />
+      <b-collapse
+        id="collapse-4"
+        :visible="!collapseOneLock && collapseOneStatus"
+      >
+        <table-contract :onSearchPC="handleSearchPC" :list="formListContract" />
       </b-collapse>
     </div>
     <div class="card">
       <div class="card-header">
-        <div v-b-toggle.collapse-5 class="card-header-title">
+        <div
+          class="card-header-title"
+          @click="collapseTwoStatus = !collapseTwoStatus && !collapseTwoLock"
+        >
           <div>PCs do Contrato (RI) Selecionado</div>
           <span class="when-opened-pcs"><i class="el-icon-caret-top" /></span>
           <span class="when-closed-pcs"
@@ -33,13 +42,20 @@
           /></span>
         </div>
       </div>
-      <b-collapse id="collapse-5" visible>
-        <table-p-cs />
+      <b-collapse
+        id="collapse-5"
+        :visible="!collapseTwoLock && collapseTwoStatus"
+      >
+        <table-p-cs :list="formListPc" />
       </b-collapse>
     </div>
     <default-card />
-    <options-card />
-    <tab />
+    <options-card :list="formListObs" :idcontrato="idcontrato" />
+    <!-- esse cara -->
+    <tab
+      :listSolicitacao="formlistSolicitacao"
+      :listAssunto="formlistAssunto"
+    />
   </div>
 </template>
 
@@ -50,6 +66,7 @@ import TablePCs from "./components/TablePCs";
 import Tab from "./components/Tab";
 import DefaultCard from "./components/DefaultCard";
 import OptionsCard from "./components/OptionsCard";
+import * as axios from "axios";
 
 const lineChartData = {
   newVisitis: {
@@ -83,14 +100,266 @@ export default {
   data() {
     return {
       lineChartData: lineChartData.newVisitis,
+      formListContract: null,
+      formListPc: null,
+      formListObs: null,
+      formlistSolicitacao: null,
+      formlistAssunto: null,
+      //#region Collapse
+
+      //variaveis
+      idcontrato: null,
+      //One
+      collapseOneStatus: true,
+      collapseOneLock: true,
+
+      //Two
+      collapseTwoStatus: true,
+      collapseTwoLock: true,
+
+      //#endregion
     };
   },
   methods: {
     handleSetLineChartData(type) {
       this.lineChartData = lineChartData[type];
     },
-
     isCollapsed() {},
+    async handleSubmit(params) {
+      await axios
+        .get("http://localhost:5478/contrato/recupera/", {
+          params,
+        })
+        .then((res) => {
+          this.formListContract = res.data.content;
+
+          console.log(this.formListContract);
+          if (this.formListContract.length == 0) {
+            this.collapseOneLock = true;
+            this.formListPc = [];
+            this.collapseTwoLock = true;
+            this.formListObs = [];
+            this.formlistSolicitacao = [];
+            this.formlistAssunto = [];
+          } else {
+            this.collapseOneLock = false;
+          }
+        })
+        .catch((err) => {
+          // Handle error
+          console.log(err);
+        });
+    },
+
+    async handleSearchPC(row) {
+      this.idcontrato = row.id;
+
+      var params = {
+        id: "",
+        nucodigopa: "",
+        dslogradouro: "",
+        nunumero: "",
+        dscomplemento: "",
+        dsbairro: "",
+        dsuf: "",
+        dscep: "",
+        dsddd: "",
+        dstelefone: "",
+        dssegmento: "",
+        dsmarcasegmento: "",
+        dtdataativacao: "",
+        dtdatadestativacao: "",
+        idstatuspc: "",
+        idcidade: "",
+        idrede: "",
+        dsnomepc: "",
+        idcentrocusto: "",
+        iduo: "",
+        dsuo: "",
+        idul: "",
+        dsul: "",
+        dstelefone2: "",
+        idsubrede: "",
+        idredeouts: "",
+        idsubredeouts: "",
+        dsregional: "",
+        idporteestab: "",
+        idredeestabcom: "",
+        dscontatoestab: "",
+        dsemailestab: "",
+        codtpmaqautoatndto: "",
+        dtdatacancelamento: "",
+        idcontrato: row.id,
+      };
+      await axios
+        .get("http://localhost:5478/pc/recupera", { params })
+        .then((res) => {
+          this.formListPc = res.data.content;
+          this.collapseTwoLock = false;
+        })
+        .catch((err) => {
+          // Handle error
+          console.log(err);
+        });
+
+      params = {
+        idcontrato: row.id,
+        id: "",
+        dtobservacao: "",
+        login: "",
+        dsobservacao: "",
+      };
+
+      await axios
+        .get("http://localhost:5478/contratoobs/recupera", {
+          params,
+        })
+        .then((res) => {
+          this.formListObs = res.data.content;
+        })
+        .catch((err) => {
+          // Handle error
+          console.log(err);
+        });
+
+      params = {
+        id: "",
+        idstatussolicitacao: "",
+        idpc: "",
+        dtdatacriacao: "",
+        nuvaloraprovado: "",
+        dscontato: "",
+        dsemail: "",
+        dsrepresentantepraca: "",
+        flcidadenova: "",
+        flplayer: "",
+        dsinformacoesadicionais: "",
+        dshistoricoaluguel: "",
+        idjustcancelamento: "",
+        dsjustificativaaprovacao: "",
+        idtipocontrato: "",
+        idgruporesponsavel: "",
+        loginalteracao: "",
+        idpa: "",
+        idrede: "",
+        idprograma: "",
+        idminuta: "",
+        idtipoprocesso: "",
+        dsprocessoworkflow: "",
+        loginresponsavelarea: "",
+        idcontratoorigem: row.id,
+        idautorizadorafavorecido: "",
+        idcategoriafornecedor: "",
+        idstacontratoanteriordistrato: "",
+        dtconclusao: "",
+        blassociarcondcom: "",
+        dtenviocondcomercial: "",
+        idporteestab: "",
+        idredeestabcom: "",
+        dtaprovacao: "",
+        nuvalorfaturamento: "",
+      };
+      await axios
+        .get("http://localhost:5478/solicitacao/recupera", {
+          params,
+        })
+        .then((res) => {
+          this.formlistSolicitacao = res.data.content;
+        })
+        .catch((err) => {
+          // Handle error
+          console.log(err);
+        });
+
+      var params = {
+        id: "",
+        atividade: "",
+        datacriacao: "",
+        datafechamento: "",
+        idsolicitacao: "",
+        idstatusatividade: "",
+        idfluxo: row.id,
+        idgruporesponsavel: "",
+        idestagio: "",
+        idstatuslegalizacao: "",
+        dataRevisao: "",
+        dataprevisao: "",
+        providenciajurid: "",
+        aprovadoranjurid: "",
+        datareabertura: "",
+        loginresponsavelarea: "",
+        loginscriacao: "",
+        diassla: "",
+        loginalteracao: "",
+        pasta: "",
+        prazodeterminado: "",
+        meses: "",
+        datatermoinicial: "",
+        datatermofinal: "",
+        avisodtativacao: "",
+        avisoaposativacao: "",
+        mesesaposativacao: "",
+        avisoprevio: "",
+        inalizacao: "",
+        infoadicionais: "",
+        fonetitular: "",
+        profissaotitular: "",
+        estadociviltitular: "",
+        metragem: "",
+        diasavisoprevio: "",
+        localdata: "",
+        represestab: "",
+        reajusteativacao: "",
+        basereajuste: "",
+        iniciopagamento: "",
+        idjustcancelamento: "",
+        contratoantigo: "",
+        contrato: "",
+        distrato: "",
+        arquivomorto: "",
+        termoinicial: "",
+        datafinalizacao: "",
+        observacao: "",
+        prorrogacaoautomatica: "",
+        mesesprorrogacao: "",
+        termofinal: "",
+        acao: "",
+        iniciopagamentoativacao: "",
+        justificativavalor: "",
+        indice: "",
+        tipotratativa: "",
+        infopagamento: "",
+        datarecminuta: "",
+        competenciadesativacao: "",
+        renegociacao: "",
+        mesesrenegociacao: "",
+        penalidade: "",
+        datarecebminutadistrato: "",
+        semanalisejuridico: "",
+        pcselecionado: "",
+        avisoativacaopcsel: "",
+        pcreajusteativacao: "",
+        iniciopgtoativacao: "",
+        pgtodifdtdesatdefinit: "",
+        idminutadistrato: "",
+        penalidadeespecificacao: "",
+        penalidademulta: "",
+        penalidadejuros: "",
+        periodocarencia: "",
+      };
+
+      await axios
+        .get("http://localhost:5478/atividade/recupera", {
+          params,
+        })
+        .then((res) => {
+          this.formlistAssunto = res.data.content;
+        })
+        .catch((err) => {
+          // Handle error
+          console.log(err);
+        });
+    },
   },
 };
 </script>

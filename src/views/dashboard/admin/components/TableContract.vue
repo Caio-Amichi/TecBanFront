@@ -1,13 +1,6 @@
 <template>
   <div class="app-container">
-    <el-table
-      v-loading="listLoading"
-      :data="list"
-      border
-      fit
-      highlight-current-row
-      style="width: 100%"
-    >
+    <el-table :data="list" border fit highlight-current-row style="width: 100%">
       <el-table-column align="center" label="ID" width="80" hidden="true">
         <template slot-scope="{ row }">
           <span>{{ row.id }}</span>
@@ -26,7 +19,7 @@
 
       <el-table-column width="120px" align="center" label="Tipo Contrato">
         <template slot-scope="{ row }">
-          <span>{{ row.idtipocontrato }}</span>
+          <span>{{ row.idtipocontrato == 1 ? "Faturamento" : "Outro" }}</span>
         </template>
       </el-table-column>
 
@@ -55,7 +48,7 @@
         style="background-color: red"
       >
         <template slot-scope="{ row }">
-          <span>{{ row.status == 1 ? "Ativo" : "Inativo" }}</span>
+          <span>{{ row.idstatuscontrato == 1 ? "Ativo" : "Inativo" }}</span>
         </template>
       </el-table-column>
 
@@ -113,7 +106,7 @@
             type="primary"
             size="small"
             icon="el-icon-search"
-            @click="confirmEdit(row)"
+            @click="onSearchPC(row)"
           />
         </template>
       </el-table-column>
@@ -122,9 +115,6 @@
 </template>
 
 <script>
-import { fetchList } from "@/api/article";
-import * as axios from "axios";
-
 export default {
   name: "InlineEditTable",
   filters: {
@@ -137,40 +127,27 @@ export default {
       return statusMap[status];
     },
   },
+  props: {
+    onSearchPC: {
+      type: Function,
+      required: true,
+    },
+    list: {
+      type: Array,
+      default: function () {
+        return [];
+      },
+    },
+  },
   data() {
     return {
-      list: null,
-      listLoading: true,
       listQuery: {
         page: 1,
         limit: 10,
       },
     };
   },
-  created() {
-    this.getList();
-  },
   methods: {
-    async getList() {
-      this.listLoading = true;
-      var itemsContrato;
-
-      await axios
-        .get("http://localhost:5478/contrato")
-        .then((res) => {
-          itemsContrato = res.data;
-        })
-        .catch((err) => {
-          // Handle error
-          console.log(err);
-        });
-
-      this.list = itemsContrato.map((v) => {
-        this.$set(v, "edit", false); // https://vuejs.org/v2/guide/reactivity.html
-        return v;
-      });
-      this.listLoading = false;
-    },
     cancelEdit(row) {
       row.title = row.originalTitle;
       row.edit = false;
@@ -180,8 +157,6 @@ export default {
       });
     },
     confirmEdit(row) {
-      console.log("entrou no confirm");
-      console.log(row.id);
       row.edit = false;
       row.originalTitle = row.title;
     },

@@ -6,7 +6,7 @@
           <el-col class="form-col">
             <div class="input-form p-float-label">
               <input
-                type="text"
+                type="number"
                 class="p-inputtext p-component"
                 placeholder="PA"
                 v-model="input_pa"
@@ -16,7 +16,7 @@
           <el-col class="form-col">
             <div class="input-form p-float-label">
               <input
-                type="text"
+                type="number"
                 class="p-inputtext p-component"
                 placeholder="PC"
                 v-model="input_pc"
@@ -55,7 +55,7 @@
           <el-col class="form-col">
             <div class="input-form p-float-label">
               <input
-                type="text"
+                type="number"
                 class="p-inputtext p-component"
                 placeholder="Cód. Autorizadora"
                 v-model="input_codautorizadora"
@@ -65,7 +65,7 @@
           <el-col class="form-col">
             <div class="input-form p-float-label">
               <input
-                type="text"
+                type="number"
                 class="p-inputtext p-component"
                 placeholder="Cód. Favorecido"
                 v-model="input_codfavorecido"
@@ -137,7 +137,7 @@
                   id="input_aprovacaopagamento"
                   v-model="input_aprovacaopagamento"
                   class="select-form"
-                  :options="optionsAprovacao"
+                  :options="optionsAprovacaoPagamento"
                   required
                 />
               </b-form-group>
@@ -191,7 +191,7 @@
                   id="input_aprovacaocontrato"
                   v-model="input_aprovacaocontrato"
                   class="select-form"
-                  :options="optionsAprovacao"
+                  :options="optionsAprovacaoContrato"
                   required
                 />
               </b-form-group>
@@ -218,7 +218,9 @@
         <el-row :gutter="20" class="form-row-btn">
           <el-col class="form-col-btn">
             <div class="b-select-form p-float-label">
-              <b-button @click="submit" class="btn-submit">Buscar</b-button>
+              <b-button @click="handleSubmit" class="btn-submit"
+                >Buscar</b-button
+              >
             </div>
           </el-col>
         </el-row>
@@ -239,6 +241,12 @@ import * as axios from "axios";
 import * as moment from "moment";
 
 export default {
+  props: {
+    onSubmit: {
+      type: Function,
+      required: true,
+    },
+  },
   components: {
     BIconFilter,
     BIcon,
@@ -266,6 +274,9 @@ export default {
       input_statuscontrato: null,
       input_pa: null,
 
+      optionsAprovacaoPagamento: null,
+      optionsAprovacaoContrato: null,
+
       optionsAprovacao: null,
       optionsUsuario: null,
       optionsContrato: [
@@ -279,6 +290,12 @@ export default {
 
       show: true,
     };
+  },
+
+  watch: {
+    optionsAprovacao: (val) => {
+      console.log("optionsAprovacao: ", val);
+    },
   },
 
   async created() {
@@ -309,7 +326,8 @@ export default {
         optionsData.push({ text: v.statusaprovacao, value: v.id });
       });
 
-      this.optionsAprovacao = JSON.parse(JSON.stringify(optionsData));
+      this.optionsAprovacaoPagamento = optionsData;
+      this.optionsAprovacaoContrato = optionsData;
       return optionsData;
     },
 
@@ -331,82 +349,40 @@ export default {
         optionsData.push({ text: v.usuario, value: v.id });
       });
 
-      this.optionsUsuario = JSON.parse(JSON.stringify(optionsData));
+      this.optionsUsuario = optionsData;
       return optionsData;
     },
 
-    async submit() {
-      var items;
+    handleSubmit() {
+      var idPcOrPa = null;
 
-      let params = {
-        // input_pa: this.input_pa == null ? "" : this.input_pa,
-        idpcselecionado: this.input_pc == null ? "" : this.input_pc,
-        // input_ri: this.input_ri == null ? "" : this.input_ri,
-        // idautorizadorafavorecido:
-        //   this.input_codautorizadora == null ? "" : this.input_codautorizadora,
-        input_codfavorecido:
-          this.input_codfavorecido == null ? "" : this.input_codfavorecido,
+      if (this.input_pc != null) {
+        idPcOrPa = this.input_pc;
+      } else if (this.input_pa != null) {
+        idPcOrPa = this.input_pa;
+      }
+
+      this.onSubmit({
+        idpcselecionado: idPcOrPa == null ? "" : this.input_pc,
+        idautorizadorafavorecido:
+          this.input_codautorizadora == null ? "" : this.input_codautorizadora,
         datatermoinicial:
-          this.input_datainicio == null ? "" : moment(this.input_datainicio),
-        // input_docautorizadora:
-        //   this.input_docautorizadora == null ? "" : this.input_docautorizadora,
-        // input_docfavorecido:
-        //   this.input_docfavorecido == null ? "" : this.input_docfavorecido,
+          this.input_datainicio == null ? "" : this.input_datainicio,
         datatermofinal:
-          this.input_datafinal == null ? "" : moment(this.input_datafinal),
-        // input_boleto: this.input_boleto == null ? "" : this.input_boleto,
-        // input_ticket: this.input_ticket == null ? "" : this.input_ticket,
-        // input_aprovacaocontrato:
-        //   this.input_aprovacaocontrato == null
-        //     ? ""
-        //     : this.input_aprovacaocontrato,
+          this.input_datafinal == null ? "" : this.input_datafinal,
         ativo: this.input_vigente == null ? "" : this.input_vigente,
-        // input_aprovacaopagamento:
-        //   this.input_aprovacaopagamento == null
-        //     ? ""
-        //     : this.input_aprovacaopagamento,
         loginresponsavelcontrato:
           this.input_responsavelcontrato == null
             ? ""
             : this.input_responsavelcontrato,
         idstatuscontrato:
-          this.input_statuscontrato == null ? "" : this.input_statuscontrato,
-      };
-
-      await axios
-        .get("http://localhost:5478/contrato/recupera/", {
-          params: {
-            idpcselecionado: this.input_pc == null ? "" : this.input_pc,
-            idautorizadorafavorecido:
-              this.input_codautorizadora == null
-                ? ""
-                : this.input_codautorizadora,
-            datatermoinicial:
-              this.input_datainicio == null ? "" : this.input_datainicio,
-            datatermofinal:
-              this.input_datafinal == null ? "" : this.input_datafinal,
-            ativo: this.input_vigente == null ? "" : this.input_vigente,
-            loginresponsavelcontrato:
-              this.input_responsavelcontrato == null
-                ? ""
-                : this.input_responsavelcontrato,
-            idstatuscontrato:
-              this.input_statuscontrato == null
-                ? ""
-                : this.input_statuscontrato,
-            id: "",
-            contratogerado: "",
-            blefetuarpagto: "",
-          },
-        })
-        .then((res) => {
-          items = res.data;
-        })
-        .catch((err) => {
-          // Handle error
-          console.log(err);
-        });
-      console.log(items);
+          this.input_aprovacaocontrato == null
+            ? ""
+            : this.input_aprovacaocontrato,
+        id: "",
+        contratogerado: "",
+        blefetuarpagto: "",
+      });
     },
   },
 };
